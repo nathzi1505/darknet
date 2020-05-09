@@ -13,6 +13,7 @@
 #include <float.h>
 #include <limits.h>
 #include "darkunistd.h"
+#include <libgen.h>
 #ifdef WIN32
 #include "gettimeofday.h"
 #else
@@ -1031,4 +1032,31 @@ int make_directory(char *path, int mode)
 #else
     return mkdir(path, mode);
 #endif
+}
+
+char *get_file_name(char *filename) 
+{
+    char* file = basename(filename);
+    char* name = strtok(file, ".");
+    return name;
+}
+
+void get_timestamp(char **timestamp)
+{
+    time_t t = time(NULL);
+    struct tm tm = *localtime(&t);
+    // sprintf(*timestamp, "%d-%02d-%02d_%02d:%02d:%02d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    sprintf(*timestamp, "%d-%02d-%02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday);
+}
+
+int check_if_file_exists(char* filename)
+{
+    return access(filename, F_OK);
+}
+
+void create_directory(char* directory){
+    struct stat st = {0};
+    if (stat(directory, &st) == -1) {
+        mkdir(directory, 0755);
+    }
 }

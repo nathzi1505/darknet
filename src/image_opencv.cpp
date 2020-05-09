@@ -864,7 +864,7 @@ extern "C" void save_cv_jpg(mat_cv *img_src, const char *name)
 // ====================================================================
 // Draw Detection
 // ====================================================================
-extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output)
+extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts)
 {
     try {
         cv::Mat *show_img = (cv::Mat*)mat;
@@ -879,15 +879,17 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
             for (j = 0; j < classes; ++j) {
                 int show = strncmp(names[j], "dont_show", 9);
                 if (dets[i].prob[j] > thresh && show) {
+                    counts[j] += 1;
                     if (class_id < 0) {
                         strcat(labelstr, names[j]);
                         class_id = j;
                         char buff[10];
                         sprintf(buff, " (%2.0f%%)", dets[i].prob[j] * 100);
-                        strcat(labelstr, buff);
+                        strcat(labelstr, buff);                             
+                        // printf("Count: %d ", counts[j]);
                         printf("%s: %.0f%% ", names[j], dets[i].prob[j] * 100);
                     }
-                    else {
+                    else {                        
                         strcat(labelstr, ", ");
                         strcat(labelstr, names[j]);
                         printf(", %s: %.0f%% ", names[j], dets[i].prob[j] * 100);

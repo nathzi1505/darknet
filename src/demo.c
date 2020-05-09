@@ -140,7 +140,7 @@ double get_wall_time()
 
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers)
+    int benchmark, int benchmark_layers, char* cam_id)
 {
     letter_box = letter_box_in;
     in_img = det_img = show_img = NULL;
@@ -222,13 +222,14 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
 
     write_cv* output_video_writer = NULL;
+    FILE *csv = NULL;
     if (out_filename && !flag_exit)
     {
-        int src_fps = 25;
+        int src_fps = 30;
         src_fps = get_stream_fps_cpp_cv(cap);
         output_video_writer =
             create_video_writer(out_filename, 'D', 'I', 'V', 'X', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
-
+        
         //'H', '2', '6', '4'
         //'D', 'I', 'V', 'X'
         //'M', 'J', 'P', 'G'
@@ -236,6 +237,23 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
         //'M', 'P', '4', '2'
         //'X', 'V', 'I', 'D'
         //'W', 'M', 'V', '2'
+
+        if (cam_id != NULL){
+            char* results_dir = "CAM";
+            char csv_filename[512];  char directory[255];    
+            char *timestamp = malloc(64); get_timestamp(&timestamp);
+
+            sprintf(directory, "%s/%s", results_dir, cam_id);
+            create_directory(directory);
+
+            sprintf(csv_filename, "%s/%s.csv", directory, timestamp);
+            if(check_if_file_exists(csv_filename) != -1 )
+                csv = fopen(csv_filename, "a+");
+            else {
+                csv = fopen(csv_filename, "a+");
+                fprintf(csv, "cam_id, frame, nomask, mask, ratio\n");
+            }
+        }
     }
 
     int send_http_post_once = 0;
@@ -245,6 +263,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     float avg_fps = 0;
     int frame_counter = 0;
     int global_frame_counter = 0;
+    int counts[2] = {0};
 
     while(1){
         ++count;
@@ -285,7 +304,9 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 }
             }
 
-            if (!benchmark && !dontdraw_bbox) draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output);
+            
+            if (!benchmark && !dontdraw_bbox) 
+                draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts);
             free_detections(local_dets, local_nboxes);
 
             printf("\nFPS:%.1f \t AVG_FPS:%.1f\n", fps, avg_fps);
@@ -323,7 +344,14 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             // save video file
             if (output_video_writer && show_img) {
                 write_frame_cv(output_video_writer, show_img);
-                printf("\n cvWriteFrame \n");
+                printf("\ncvWriteFrame: %d\n", frame_id);
+                
+                if (cam_id != NULL && frame_id % 10 == 0) {
+                    float nomask = counts[0] / 10.0; float mask = counts[1] / 10.0;
+                    float ratio = nomask / (float) mask;
+                    fprintf(csv, "%s, %d, %f, %f, %.2f\n", cam_id, frame_id, nomask, mask, ratio);
+                    counts[0] = 0; counts[1] = 0;
+                }
             }
 
             while (custom_atomic_load_int(&run_detect_in_thread)) {
@@ -378,6 +406,8 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     if (output_video_writer) {
         release_video_writer(&output_video_writer);
         printf("output_video_writer closed. \n");
+        if (cam_id != NULL)
+            fclose(csv);
     }
 
     this_thread_sleep_for(thread_wait_ms);
@@ -413,7 +443,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 #else
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers)
+    int benchmark, int benchmark_layers, char* cam_id)
 {
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }

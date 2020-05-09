@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <libgen.h>
 
 #include "darknet.h"
 #include "network.h"
@@ -1547,12 +1546,7 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
     getchar();
 }
 
-char* get_file_name(char *filename) 
-{
-    char* file = basename(filename);
-    char* name = strtok(file, ".");
-    return name;
-}
+
 
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int benchmark_layers)
@@ -1965,11 +1959,14 @@ void run_detector(int argc, char **argv)
         int classes = option_find_int(options, "classes", 20);
         char *name_list = option_find_str(options, "names", "data/names.list");
         char **names = get_labels(name_list);
+
+        char *cam_id = find_char_arg(argc, argv, "-cam_id", NULL);
+
         if (filename)
             if (strlen(filename) > 0)
                 if (filename[strlen(filename) - 1] == 0x0d) filename[strlen(filename) - 1] = 0;
         demo(cfg, weights, thresh, hier_thresh, cam_index, filename, names, classes, frame_skip, prefix, out_filename,
-            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers);
+            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers, cam_id);
 
         free_list_contents_kvp(options);
         free_list(options);

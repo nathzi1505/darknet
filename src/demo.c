@@ -349,7 +349,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 if (cam_id != NULL && frame_id % 10 == 0) {
                     float nomask = counts[0] / 10.0; float mask = counts[1] / 10.0;
                     float ratio = nomask / (float) mask;
-                    fprintf(csv, "%s, %d, %f, %f, %.2f\n", cam_id, frame_id, nomask, mask, ratio);
+                    fprintf(csv, "%s, %d, %.2f, %.2f, %.2f\n", cam_id, frame_id, nomask, mask, ratio);
                     counts[0] = 0; counts[1] = 0;
                 }
             }

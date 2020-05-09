@@ -244,7 +244,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             char *timestamp = malloc(64); get_timestamp(&timestamp);
 
             sprintf(directory, "%s/%s", results_dir, cam_id);
-            create_directory(directory);
+            make_directory(directory, 0755);
 
             sprintf(csv_filename, "%s/%s.csv", directory, timestamp);
             if(check_if_file_exists(csv_filename) != -1 )

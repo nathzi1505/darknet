@@ -98,7 +98,6 @@ int make_directory(char *path, int mode);
 char *get_file_name(char *filename);
 void get_timestamp(char **timestamp);
 int check_if_file_exists(char* filename);
-void create_directory(char* directory);
 
 #define max_val_cmp(a,b) (((a) > (b)) ? (a) : (b))
 #define min_val_cmp(a,b) (((a) < (b)) ? (a) : (b))

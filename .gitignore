@@ -3,6 +3,8 @@
 *.dSYM
 *.csv
 *.out
+*.jpg
+*.avi
 *.png
 *.so
 *.exe
@@ -55,3 +57,7 @@ include/darknet/
 uselib
 uselib_track
 darknet
+
+data/obj
+backup-*
+yolov4.conv.137

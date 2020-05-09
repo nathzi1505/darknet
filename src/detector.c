@@ -1,4 +1,6 @@
 #include <stdlib.h>
+#include <libgen.h>
+
 #include "darknet.h"
 #include "network.h"
 #include "region_layer.h"
@@ -1545,6 +1547,12 @@ void calc_anchors(char *datacfg, int num_of_clusters, int width, int height, int
     getchar();
 }
 
+char* get_file_name(char *filename) 
+{
+    char* file = basename(filename);
+    char* name = strtok(file, ".");
+    return name;
+}
 
 void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filename, float thresh,
     float hier_thresh, int dont_show, int ext_output, int save_labels, char *outfile, int letter_box, int benchmark_layers)
@@ -1624,9 +1632,13 @@ void test_detector(char *datacfg, char *cfgfile, char *weightfile, char *filenam
             else diounms_sort(dets, nboxes, l.classes, nms, l.nms_kind, l.beta_nms);
         }
         draw_detections_v3(im, dets, nboxes, thresh, names, alphabet, l.classes, ext_output);
-        save_image(im, "predictions");
+        // save_image(im, "predictions");
+        // if (!dont_show) {
+        //     show_image(im, "predictions");
+        // }
+        save_image(im, get_file_name(filename));
         if (!dont_show) {
-            show_image(im, "predictions");
+            show_image(im, get_file_name(filename));
         }
 
         if (json_file) {

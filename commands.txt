@@ -1,0 +1,8 @@
+./darknet detector demo data/obj.data yolo-obj-test.cfg \
+                   backup-8000/yolo-obj_last.weights \
+                   ../../MOXA/data/videos/sample_1.mkv \
+                   -out_filename res_1.avi -cam_id CAMKOL001
+
+./darknet detector test data/obj.data yolo-obj-test.cfg \
+                   backup-8000/yolo-obj_last.weights \
+                   ../../MOXA/data/images/89.jpeg

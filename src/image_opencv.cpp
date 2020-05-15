@@ -4,6 +4,8 @@
 #ifdef OPENCV
 #include "utils.h"
 
+#include <cmath>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cmath>
@@ -1018,14 +1020,30 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 sprintf(mask_label, "MASK: %d", frame_count[1]);
                 sprintf(ratio_label, "RATIO: %.2f", ratio);
 
-                int x1 = 7;
-                int y1 = 25;
-                int padding = 3;
+                int image_height = show_img->size().height;
+                int image_width = show_img->size().width;
+                int scale = ceil((image_height * image_width) / (1920.0 * 1080.0));
+
+                printf("scale : %f", scale);
+
+                // int x1 = (int)ceil(7 * (show_img->size().width / 1920.0));
+                // int y1 = (int)ceil(25 * (show_img->size().height / 1080.0));
+                // int padding = (int)ceil(3 * (show_img->size().width / 1920.0));
+
+                int x1 = 7 * scale;
+                int y1 = 25 * scale;
+                int padding = 3 * scale;
+
                 int rows; (cam_id != NULL) ? (rows = 4) : (rows = 3);  
                 float line_thickness = 1.8;
 
+                // printf("Width : %d\n", show_img->size().width);
+                // printf("Height: %d\n", show_img->size().height);
 
-                cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, 1, 0);
+                float font_scale = 0.8 * scale;
+                int thickness = 1 * scale;
+
+                cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, thickness, 0);
                 cv::Point top_left (x1 - padding, y1 - line_thickness * overlay_text_size.height);
                 cv::Point bottom_right (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows - 1) * line_thickness / 2)) * overlay_text_size.height);
                 cv::Point top_left_sign (x1 - padding, y1 + (rows + (rows* line_thickness / 2)) * overlay_text_size.height);
@@ -1043,10 +1061,10 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 }    
 
                 if (cam_id)
-                    cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA); 
-                cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA); 
-                cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA); 
-                cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, 0.8, cv::Scalar(0,0,0), 1, cv::LINE_AA); 
+                    cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, cv::LINE_AA); 
+                cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, cv::LINE_AA); 
+                cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, cv::LINE_AA); 
+                cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, cv::LINE_AA); 
 
                 cv::addWeighted(overlay, alpha, *show_img, 1 - alpha, 0, *show_img);
 

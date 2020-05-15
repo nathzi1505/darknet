@@ -267,6 +267,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
     while(1){
         ++count;
+        double after, spent_time;
         {
             const float nms = .45;    // 0.4F
             int local_nboxes = nboxes;
@@ -308,6 +309,9 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             if (!benchmark && !dontdraw_bbox) 
                 draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, cam_id);
             free_detections(local_dets, local_nboxes);
+
+            after = get_time_point();
+            spent_time = (get_time_point() - start_time) / 1000000;
 
             printf("\nFPS:%.1f \t AVG_FPS:%.1f\n", fps, avg_fps);
 
@@ -386,12 +390,12 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
             //double after = get_wall_time();
             //float curr = 1./(after - before);
-            double after = get_time_point();    // more accurate time measurements
+            // double after = get_time_point();    // more accurate time measurements
             float curr = 1000000. / (after - before);
             fps = fps*0.9 + curr*0.1;
             before = after;
 
-            float spent_time = (get_time_point() - start_time) / 1000000;
+            // float spent_time = (get_time_point() - start_time) / 1000000;
             frame_counter++;
             global_frame_counter++;
             if (spent_time >= 3.0f) {

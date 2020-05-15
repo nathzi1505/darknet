@@ -1022,7 +1022,12 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
 
                 int image_height = show_img->size().height;
                 int image_width = show_img->size().width;
-                int scale = ceil((image_height * image_width) / (1920.0 * 1080.0));
+                
+                float factor = (image_height * image_width) / (1920.0 * 1080.0);
+                int scale = 1;
+
+                if (factor > 1)
+                    scale = ceil(factor);
 
                 // printf("scale : %f", scale);
 

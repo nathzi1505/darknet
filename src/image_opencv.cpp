@@ -1024,11 +1024,7 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 int image_width = show_img->size().width;
                 int scale = ceil((image_height * image_width) / (1920.0 * 1080.0));
 
-                printf("scale : %f", scale);
-
-                // int x1 = (int)ceil(7 * (show_img->size().width / 1920.0));
-                // int y1 = (int)ceil(25 * (show_img->size().height / 1080.0));
-                // int padding = (int)ceil(3 * (show_img->size().width / 1920.0));
+                // printf("scale : %f", scale);
 
                 int x1 = 7 * scale;
                 int y1 = 25 * scale;

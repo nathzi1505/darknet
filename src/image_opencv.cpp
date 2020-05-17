@@ -889,12 +889,12 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                         strcat(labelstr, names[j]);
                         class_id = j;
                         char buff[10];
-                        // sprintf(buff, " (%2.0f%%)", dets[i].prob[j] * 100); // Does not display percentage
+                        // sprintf(buff, " (%2.0f%%)", dets[i].prob[j] * 100); 
                         sprintf(buff, " ");
                         strcat(labelstr, buff);                             
                         // printf("Count: %d ", counts[j]);
-                        // printf("%s: %.0f%% ", names[j], dets[i].prob[j] * 100); // Does not display percentage
-                        printf("%s", names[j]);
+                        printf("%s: %.0f%% ", names[j], dets[i].prob[j] * 100);
+                        // printf("%s", names[j]);
                     }
                     else {                        
                         strcat(labelstr, ", ");
@@ -992,7 +992,7 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                     printf("\t(left_x: %4.0f   top_y: %4.0f   width: %4.0f   height: %4.0f)\n",
                     (float)left, (float)top, b.w*show_img->cols, b.h*show_img->rows);
                 else
-                    printf("\n");
+                    printf(" ");
 
                 cv::rectangle(*show_img, pt_text_bg1, pt_text_bg2, color, width, 8, 0);
                 cv::rectangle(*show_img, pt_text_bg1, pt_text_bg2, color, CV_FILLED, 8, 0);    // filled

@@ -223,36 +223,52 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
     write_cv* output_video_writer = NULL;
     FILE *csv = NULL;
-    if (out_filename && !flag_exit)
+    if ((out_filename || cam_id) && !flag_exit)
     {
         int src_fps = 30;
         src_fps = get_stream_fps_cpp_cv(cap);
-        output_video_writer =
-            create_video_writer(out_filename, 'D', 'I', 'V', 'X', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         
-        //'H', '2', '6', '4'
-        //'D', 'I', 'V', 'X'
-        //'M', 'J', 'P', 'G'
-        //'M', 'P', '4', 'V'
-        //'M', 'P', '4', '2'
-        //'X', 'V', 'I', 'D'
-        //'W', 'M', 'V', '2'
+        // CODECS
+        // 'H', '2', '6', '4'
+        // 'D', 'I', 'V', 'X'
+        // 'M', 'J', 'P', 'G'
+        // 'M', 'P', '4', 'V'
+        // 'M', 'P', '4', '2'
+        // 'X', 'V', 'I', 'D'
+        // 'W', 'M', 'V', '2'
 
         if (cam_id != NULL){
             char* results_dir = "CAM";
-            char csv_filename[512];  char directory[255];    
+            char csv_filename[512];  char video_filename[512];  
+            char directory[255]; char csv_directory[255]; char video_directory[255];
             char *timestamp = malloc(64); get_timestamp(&timestamp);
 
             sprintf(directory, "%s/%s", results_dir, cam_id);
             make_directory(directory, 0755);
 
-            sprintf(csv_filename, "%s/%s.csv", directory, timestamp);
+            sprintf(csv_directory, "%s/csv", directory);
+            make_directory(csv_directory, 0755);
+
+            sprintf(video_directory, "%s/video", directory);
+            make_directory(video_directory, 0755);
+
+
+            sprintf(csv_filename, "%s/%s.csv", csv_directory, timestamp);
+            sprintf(video_filename, "%s/%s.mp4", video_directory, timestamp);
+
             if(check_if_file_exists(csv_filename) != -1 )
                 csv = fopen(csv_filename, "a+");
             else {
                 csv = fopen(csv_filename, "a+");
                 fprintf(csv, "cam_id, frame, nomask, mask, ratio\n");
             }
+
+            output_video_writer =
+            create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
+        }
+        else if(out_filename) {
+            output_video_writer =
+            create_video_writer(out_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         }
     }
 
@@ -277,16 +293,12 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             if (!benchmark) custom_atomic_store_int(&run_fetch_in_thread, 1); // if (custom_create_thread(&fetch_thread, 0, fetch_in_thread, 0)) error("Thread creation failed");
             custom_atomic_store_int(&run_detect_in_thread, 1); // if (custom_create_thread(&detect_thread, 0, detect_in_thread, 0)) error("Thread creation failed");
 
-            //if (nms) do_nms_obj(local_dets, local_nboxes, l.classes, nms);    // bad results
             if (nms) {
                 if (l.nms_kind == DEFAULT_NMS) do_nms_sort(local_dets, local_nboxes, l.classes, nms);
                 else diounms_sort(local_dets, local_nboxes, l.classes, nms, l.nms_kind, l.beta_nms);
             }
 
-            //printf("\033[2J");
-            //printf("\033[1;1H");
-            //printf("\nFPS:%.1f\n", fps);
-            printf("Objects:\n\n");
+            printf("Objects: ");
 
             ++frame_id;
             if (demo_json_port > 0) {

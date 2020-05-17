@@ -140,7 +140,7 @@ double get_wall_time()
 
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers, char* cam_id)
+    int benchmark, int benchmark_layers, char* cam_id, int interval)
 {
     letter_box = letter_box_in;
     in_img = det_img = show_img = NULL;
@@ -221,13 +221,15 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     }
 
 
-    write_cv* output_video_writer = NULL;
-    FILE *csv = NULL;
+    write_cv* output_video_writer = NULL; char *timestamp = malloc(64);
+    FILE *csv = NULL; char csv_filename[512];  char video_filename[512]; 
+    char* results_dir = "CAM"; 
+    char directory[255]; char csv_directory[255]; char video_directory[255];
+    int src_fps = 30;
+    src_fps = get_stream_fps_cpp_cv(cap);
+
     if ((out_filename || cam_id) && !flag_exit)
-    {
-        int src_fps = 30;
-        src_fps = get_stream_fps_cpp_cv(cap);
-        
+    {     
         // CODECS
         // 'H', '2', '6', '4'
         // 'D', 'I', 'V', 'X'
@@ -238,10 +240,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
         // 'W', 'M', 'V', '2'
 
         if (cam_id != NULL){
-            char* results_dir = "CAM";
-            char csv_filename[512];  char video_filename[512];  
-            char directory[255]; char csv_directory[255]; char video_directory[255];
-            char *timestamp = malloc(64); get_timestamp(&timestamp);
+            get_timestamp(&timestamp);
 
             sprintf(directory, "%s/%s", results_dir, cam_id);
             make_directory(directory, 0755);
@@ -252,13 +251,13 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             sprintf(video_directory, "%s/video", directory);
             make_directory(video_directory, 0755);
 
-
             sprintf(csv_filename, "%s/%s.csv", csv_directory, timestamp);
             sprintf(video_filename, "%s/%s.mp4", video_directory, timestamp);
 
-            if(check_if_file_exists(csv_filename) != -1 )
-                csv = fopen(csv_filename, "a+");
-            else {
+            // if(check_if_file_exists(csv_filename) != -1 )
+            //     csv = fopen(csv_filename, "a+");
+            // else 
+            {
                 csv = fopen(csv_filename, "a+");
                 fprintf(csv, "cam_id, frame, nomask, mask, ratio\n");
             }
@@ -266,25 +265,49 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             output_video_writer =
             create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         }
-        else if(out_filename) {
+        else if (out_filename) {
             output_video_writer =
             create_video_writer(out_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         }
     }
 
     int send_http_post_once = 0;
-    const double start_time_lim = get_time_point();
-    double before = get_time_point();
-    double start_time = get_time_point();
     float avg_fps = 0;
     int frame_counter = 0;
     int global_frame_counter = 0;
+    int frame_id_csv = 0;
     int counts[2] = {0};
+
+    const double start_time_lim = get_time_point();
+    double before = get_time_point();
+    double start_time = get_time_point();
+    double start_detection_time = get_time_point();
 
     while(1){
         ++count;
         double after, spent_time;
         {
+            int is_exceeded = 0; 
+            if (interval > 0)
+                is_exceeded = ((get_time_point() - start_detection_time) / 1000000) > interval ? 1 : 0; 
+            if (output_video_writer && is_exceeded) 
+            {
+                start_detection_time = get_time_point();
+                get_timestamp(&timestamp);
+                release_video_writer(&output_video_writer);
+                printf("output_video_writer closed. \n");
+                if (cam_id != NULL){
+                    fclose(csv);  
+                    sprintf(csv_filename, "%s/%s.csv", csv_directory, timestamp);
+                    csv = fopen(csv_filename, "a+");
+                    fprintf(csv, "cam_id, frame, nomask, mask, ratio\n");
+                }              
+                sprintf(video_filename, "%s/%s.mp4", video_directory, timestamp);  
+                printf("output_video_writer starting \n");              
+                output_video_writer =
+                create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
+            }
+
             const float nms = .45;    // 0.4F
             int local_nboxes = nboxes;
             detection *local_dets = dets;
@@ -300,7 +323,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
             printf("Objects: ");
 
-            ++frame_id;
+            ++frame_id; ++frame_id_csv;
             if (demo_json_port > 0) {
                 int timeout = 400000;
                 send_json(local_dets, local_nboxes, l.classes, demo_names, frame_id, demo_json_port, timeout);
@@ -365,7 +388,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 if (cam_id != NULL && frame_id % 10 == 0) {
                     float nomask = counts[0] / 10.0; float mask = counts[1] / 10.0;
                     float ratio = nomask / (float) mask;
-                    fprintf(csv, "%s, %d, %.2f, %.2f, %.2f\n", cam_id, frame_id, nomask, mask, ratio);
+                    fprintf(csv, "%s, %d, %.2f, %.2f, %.2f\n", cam_id, frame_id_csv, nomask, mask, ratio);
                     counts[0] = 0; counts[1] = 0;
                 }
             }
@@ -400,9 +423,10 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
         if(delay < 0){
             delay = frame_skip;
 
-            //double after = get_wall_time();
-            //float curr = 1./(after - before);
+            // double after = get_wall_time();
+            // float curr = 1./(after - before);
             // double after = get_time_point();    // more accurate time measurements
+            
             float curr = 1000000. / (after - before);
             fps = fps*0.9 + curr*0.1;
             before = after;

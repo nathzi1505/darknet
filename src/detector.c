@@ -1961,12 +1961,13 @@ void run_detector(int argc, char **argv)
         char **names = get_labels(name_list);
 
         char *cam_id = find_char_arg(argc, argv, "-cam_id", NULL);
+        int interval = find_int_arg(argc, argv, "-interval", -1) * 60; // Interval in minutes
 
         if (filename)
             if (strlen(filename) > 0)
                 if (filename[strlen(filename) - 1] == 0x0d) filename[strlen(filename) - 1] = 0;
         demo(cfg, weights, thresh, hier_thresh, cam_index, filename, names, classes, frame_skip, prefix, out_filename,
-            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers, cam_id);
+            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers, cam_id, interval);
 
         free_list_contents_kvp(options);
         free_list(options);

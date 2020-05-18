@@ -287,6 +287,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
         ++count;
         double after, spent_time;
         {
+            // ------------------- Interval based output video save
             int is_exceeded = 0; 
             if (interval > 0)
                 is_exceeded = ((get_time_point() - start_detection_time) / 1000000) > interval ? 1 : 0; 
@@ -307,6 +308,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 output_video_writer =
                 create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
             }
+            // ------------------- Interval based output video save
 
             const float nms = .45;    // 0.4F
             int local_nboxes = nboxes;
@@ -345,8 +347,8 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, cam_id);
             free_detections(local_dets, local_nboxes);
 
-            after = get_time_point();
-            spent_time = (get_time_point() - start_time) / 1000000;
+            // after = get_time_point();
+            // spent_time = (get_time_point() - start_time) / 1000000;
 
             printf("\nFPS:%.1f \t AVG_FPS:%.1f\n", fps, avg_fps);
 
@@ -425,17 +427,17 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
             // double after = get_wall_time();
             // float curr = 1./(after - before);
-            // double after = get_time_point();    // more accurate time measurements
-            
+
+            double after = get_time_point();    // more accurate time measurements
             float curr = 1000000. / (after - before);
             fps = fps*0.9 + curr*0.1;
             before = after;
 
-            // float spent_time = (get_time_point() - start_time) / 1000000;
+            float spent_time = (get_time_point() - start_time) / 1000000;
             frame_counter++;
             global_frame_counter++;
             if (spent_time >= 3.0f) {
-                //printf(" spent_time = %f \n", spent_time);
+                // printf(" spent_time = %f \n", spent_time);
                 avg_fps = frame_counter / spent_time;
                 frame_counter = 0;
                 start_time = get_time_point();

@@ -866,6 +866,7 @@ extern "C" void save_cv_jpg(mat_cv *img_src, const char *name)
 // ====================================================================
 // Draw Detection
 // ====================================================================
+float AREA_THRESH = 0.5;
 extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts, char *cam_id)
 {
     try {
@@ -932,7 +933,17 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 b.h = (b.h < 1) ? b.h : 1;
                 b.x = (b.x < 1) ? b.x : 1;
                 b.y = (b.y < 1) ? b.y : 1;
+                
+                float total_area = show_img->cols * show_img->rows * 1.0;
+                float area = b.w * b.h * total_area;
+                float percentage = area / total_area;
 
+                printf("Area: %f ", area);                
+                printf("Full area: %f ", total_area);
+                printf("Percentage: %f \n", area / total_area);
+
+                if (percentage > AREA_THRESH)
+                    continue;
                 // printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
 
                 int left = (b.x - b.w / 2.)*show_img->cols;

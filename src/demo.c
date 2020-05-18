@@ -225,8 +225,12 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     FILE *csv = NULL; char csv_filename[512];  char video_filename[512]; 
     char* results_dir = "CAM"; 
     char directory[255]; char csv_directory[255]; char video_directory[255];
-    int src_fps = 30;
-    src_fps = get_stream_fps_cpp_cv(cap);
+    
+    int src_fps = get_stream_fps_cpp_cv(cap);
+    char word[] = "rtsp";
+    char *is_rtsp = strstr(filename, word);
+    if (is_rtsp)
+        src_fps = 25;
 
     if ((out_filename || cam_id) && !flag_exit)
     {     
@@ -288,6 +292,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
         double after, spent_time;
         {
             // ------------------- Interval based output video save
+            // printf("src fps: %d\n", src_fps);
             int is_exceeded = 0; 
             if (interval > 0)
                 is_exceeded = ((get_time_point() - start_detection_time) / 1000000) > interval ? 1 : 0; 

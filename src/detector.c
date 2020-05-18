@@ -1963,6 +1963,8 @@ void run_detector(int argc, char **argv)
         char *cam_id = find_char_arg(argc, argv, "-cam_id", NULL);
         int interval = find_int_arg(argc, argv, "-interval", -1) * 60; // Interval in minutes
 
+        // printf("CAMID: %s", cam_id);
+
         if (filename)
             if (strlen(filename) > 0)
                 if (filename[strlen(filename) - 1] == 0x0d) filename[strlen(filename) - 1] = 0;

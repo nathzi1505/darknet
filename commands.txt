@@ -1,6 +1,7 @@
 ./darknet detector demo data/obj.data yolo-obj-test.cfg \
                    backup-8000/yolo-obj_last.weights \
-                   ../../MOXA/data/videos/sample_1.mkv \ -cam_id CAMKOL001 -interval 60 # 1 hr
+                   ../../MOXA/data/videos/sample_1.mkv \
+                    -cam_id CAMKOL001 -interval 60 # 1 hr
 
 ./darknet detector demo data/obj.data yolo-obj-test.cfg \
                    backup-8000/yolo-obj_last.weights \

@@ -1,7 +1,11 @@
 ./darknet detector demo data/obj.data yolo-obj-test.cfg \
                    backup-8000/yolo-obj_last.weights \
-                   ../../MOXA/data/videos/sample_1.mkv \
-                   -out_filename res_1.avi -cam_id CAMKOL001
+                   ../../MOXA/data/videos/sample_1.mkv \ -cam_id CAMKOL001 -interval 60 # 1 hr
+
+./darknet detector demo data/obj.data yolo-obj-test.cfg \
+                   backup-8000/yolo-obj_last.weights \
+                   rtsp://admin:admin123@192.168.31.208:8554/live.sdp -cam_id CAMKOL002 -interval 60 # 1 hr
+
 
 ./darknet detector test data/obj.data yolo-obj-test.cfg \
                    backup-8000/yolo-obj_last.weights \

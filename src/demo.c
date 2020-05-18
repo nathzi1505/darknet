@@ -263,11 +263,11 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             }
 
             output_video_writer =
-            create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
+            create_video_writer(video_filename, 'M', 'J', 'P', 'G', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         }
         else if (out_filename) {
             output_video_writer =
-            create_video_writer(out_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
+            create_video_writer(out_filename, 'M', 'J', 'P', 'G', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
         }
     }
 
@@ -305,7 +305,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
                 sprintf(video_filename, "%s/%s.mp4", video_directory, timestamp);  
                 printf("output_video_writer starting \n");              
                 output_video_writer =
-                create_video_writer(video_filename, 'H', '2', '6', '4', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
+                create_video_writer(video_filename, 'M', 'J', 'P', 'G', src_fps, get_width_mat(det_img), get_height_mat(det_img), 1);
             }
 
             const float nms = .45;    // 0.4F

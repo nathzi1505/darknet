@@ -8,6 +8,7 @@
 #include "image.h"
 #include "demo.h"
 #include "darknet.h"
+
 #ifdef WIN32
 #include <time.h>
 #include "gettimeofday.h"
@@ -16,7 +17,6 @@
 #endif
 
 #ifdef OPENCV
-
 #include "http_stream.h"
 
 static char **demo_names;
@@ -36,6 +36,7 @@ static float demo_thresh = 0;
 static int demo_ext_output = 0;
 static long long int frame_id = 0;
 static int demo_json_port = -1;
+static float angle = 0;
 
 #define NFRAMES 3
 
@@ -54,6 +55,7 @@ static int letter_box = 0;
 static const int thread_wait_ms = 1;
 static volatile int run_fetch_in_thread = 0;
 static volatile int run_detect_in_thread = 0;
+static int roi_flag = 0;
 
 
 void *fetch_in_thread(void *ptr)
@@ -65,9 +67,9 @@ void *fetch_in_thread(void *ptr)
         }
         int dont_close_stream = 0;    // set 1 if your IP-camera periodically turns off and turns on video-stream
         if (letter_box)
-            in_s = get_image_from_stream_letterbox(cap, net.w, net.h, net.c, &in_img, dont_close_stream);
+            in_s = get_image_from_stream_letterbox(cap, net.w, net.h, net.c, &in_img, dont_close_stream, angle);
         else
-            in_s = get_image_from_stream_resize(cap, net.w, net.h, net.c, &in_img, dont_close_stream);
+            in_s = get_image_from_stream_resize(cap, net.w, net.h, net.c, &in_img, dont_close_stream, angle, roi_flag);
         if (!in_s.data) {
             printf("Stream closed.\n");
             custom_atomic_store_int(&flag_exit, 1);
@@ -140,11 +142,13 @@ double get_wall_time()
 
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers, char* cam_id, int interval)
+    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi)
 {
+    roi_flag = roi;
+    angle = rotate;
     letter_box = letter_box_in;
     in_img = det_img = show_img = NULL;
-    //skip = frame_skip;
+    // skip = frame_skip;
     image **alphabet = load_alphabet();
     int delay = frame_skip;
     demo_names = names;
@@ -349,7 +353,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
             
             if (!benchmark && !dontdraw_bbox) 
-                draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, cam_id);
+                draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, cam_id, rotate);
             free_detections(local_dets, local_nboxes);
 
             // after = get_time_point();
@@ -490,7 +494,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 #else
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers, char* cam_id, int interval)
+    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi_flag)
 {
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }

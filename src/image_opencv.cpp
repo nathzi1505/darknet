@@ -208,6 +208,44 @@ extern "C" int get_height_mat(mat_cv *mat)
     }
     return ((cv::Mat *)mat)->rows;
 }
+
+// ----------------------------------------
+
+// Preserve image information
+cv::Mat* rotate_image_mat_v1(cv::Mat *src, float angle)
+{
+    if (angle == 0)
+        return src;
+    cv::Point2f center((src->cols-1)/2.0, (src->rows-1)/2.0); 
+    cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+    cv::Rect2f bbox = cv::RotatedRect(cv::Point2f(), src->size(), angle).boundingRect2f();
+    rot.at<double>(0,2) += bbox.width/2.0 - src->cols/2.0;
+    rot.at<double>(1,2) += bbox.height/2.0 - src->rows/2.0;
+    cv::warpAffine(*src, *src, rot, bbox.size());
+    return src;
+}
+
+// Does not preserve image information
+cv::Mat* rotate_image_mat_v2(cv::Mat *src, float angle)
+{
+    if (angle == 0)
+        return src;
+    cv::Point2f center((src->cols-1)/2.0, (src->rows-1)/2.0); 
+    cv::Mat rot = cv::getRotationMatrix2D(center, angle, 1.0);
+    cv::warpAffine(*src, *src, rot, src->size());
+    return src;
+}
+
+cv::Mat* rotate_image_mat_v0(cv::Mat *src, float angle)
+{
+    if (angle == 0)
+        return src;
+    image im = mat_to_image(*src);
+    im = rotate_image(im, angle * 3.1415 / 180);
+    *src = image_to_mat(im);
+    return src;
+}
+
 // ----------------------------------------
 
 extern "C" void release_mat(mat_cv **mat)
@@ -221,6 +259,7 @@ extern "C" void release_mat(mat_cv **mat)
         cerr << "OpenCV exception: release_mat \n";
     }
 }
+// ----------------------------------------
 
 // ====================================================================
 // IplImage
@@ -758,7 +797,7 @@ extern "C" int wait_for_stream(cap_cv *cap, cv::Mat* src, int dont_close)
 }
 // ----------------------------------------
 
-extern "C" image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close)
+extern "C" image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close, float rotate, int roi_flag)
 {
     c = c ? c : 3;
     cv::Mat *src = NULL;
@@ -778,8 +817,16 @@ extern "C" image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, 
 
     if (!wait_for_stream(cap, src, dont_close)) return make_empty_image(0, 0, 0);
 
-    *(cv::Mat **)in_img = src;
+    if (rotate != 0)
+    {
+        if (roi_flag)
+            src = rotate_image_mat_v2(src, rotate);
+        else    
+            src = rotate_image_mat_v1(src, rotate);
+    }
 
+    *(cv::Mat **)in_img = src;
+    
     cv::Mat new_img = cv::Mat(h, w, CV_8UC(c));
     cv::resize(*src, new_img, new_img.size(), 0, 0, cv::INTER_LINEAR);
     if (c>1) cv::cvtColor(new_img, new_img, cv::COLOR_RGB2BGR);
@@ -791,7 +838,7 @@ extern "C" image get_image_from_stream_resize(cap_cv *cap, int w, int h, int c, 
 }
 // ----------------------------------------
 
-extern "C" image get_image_from_stream_letterbox(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close)
+extern "C" image get_image_from_stream_letterbox(cap_cv *cap, int w, int h, int c, mat_cv** in_img, int dont_close, float rotate)
 {
     c = c ? c : 3;
     cv::Mat *src = NULL;
@@ -810,6 +857,8 @@ extern "C" image get_image_from_stream_letterbox(cap_cv *cap, int w, int h, int 
 
     if (!wait_for_stream(cap, src, dont_close)) return make_empty_image(0, 0, 0);   // passes (cv::Mat *)src while should be (cv::Mat **)src
 
+    if (rotate != 0)
+        src = rotate_image_mat_v2(src, rotate);
     *in_img = (mat_cv *)new cv::Mat(src->rows, src->cols, CV_8UC(c));
     cv::resize(*src, **(cv::Mat**)in_img, (*(cv::Mat**)in_img)->size(), 0, 0, cv::INTER_LINEAR);
 
@@ -867,7 +916,7 @@ extern "C" void save_cv_jpg(mat_cv *img_src, const char *name)
 // Draw Detection
 // ====================================================================
 float AREA_THRESH = 0.5;
-extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts, char *cam_id)
+extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts, char *cam_id, float rotate)
 {
     try {
         cv::Mat *show_img = (cv::Mat*)mat;
@@ -877,7 +926,6 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
         frame_id++;
 
         int frame_count[2] = {0}; // Count of no_mask and mask for this frame
-
         for (i = 0; i < num; ++i) {
             char labelstr[4096] = { 0 };
             int class_id = -1;
@@ -938,12 +986,13 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 float area = b.w * b.h * total_area;
                 float percentage = area / total_area;
 
-                printf("Area: %f ", area);                
-                printf("Full area: %f ", total_area);
-                printf("Percentage: %f \n", area / total_area);
+                // printf("Area: %f ", area);                
+                // printf("Full area: %f ", total_area);
+                // printf("Percentage: %f \n", area / total_area);
 
                 if (percentage > AREA_THRESH)
                     continue;
+
                 // printf("%f %f %f %f\n", b.x, b.y, b.w, b.h);
 
                 int left = (b.x - b.w / 2.)*show_img->cols;
@@ -1011,79 +1060,85 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
                 cv::putText(*show_img, labelstr, pt_text, cv::FONT_HERSHEY_COMPLEX_SMALL, font_size, black_color, 2 * font_size, CV_AA);
                 // cv::FONT_HERSHEY_COMPLEX_SMALL, cv::FONT_HERSHEY_SIMPLEX
 
-                
-
-                // ------------------------------------- OVERLAY START
-
-                char cam_label[20], nomask_label[20], mask_label[20], ratio_label[20];
-                char test_label[] = "XXXXXXXXXXXXXXXXXXX"; // 19 Xs + '\0'
-
-                cv::Mat overlay;
-                double alpha = 1.0;
-                show_img->copyTo(overlay);
-
-                float ratio = frame_count[0] / (1.0 * frame_count[1]); // (nomask / mask)
-                float ratio_threshold = 2;
-                
-                if (cam_id)                    
-                    sprintf(cam_label, "CAMID: %s", cam_id);
-                sprintf(nomask_label, "NO MASK: %d", frame_count[0]);
-                sprintf(mask_label, "MASK: %d", frame_count[1]);
-                sprintf(ratio_label, "RATIO: %.2f", ratio);
-
-                int image_height = show_img->size().height;
-                int image_width = show_img->size().width;
-                
-                float factor = (image_height * image_width) / (1920.0 * 1080.0);
-                int scale = 1;
-
-                if (factor > 1)
-                    scale = ceil(factor);
-
-                // printf("scale : %f", scale);
-
-                int x1 = 7 * scale;
-                int y1 = 25 * scale;
-                int padding = 3 * scale;
-
-                int rows; (cam_id != NULL) ? (rows = 4) : (rows = 3);  
-                float line_thickness = 1.8;
-
-                // printf("Width : %d\n", show_img->size().width);
-                // printf("Height: %d\n", show_img->size().height);
-
-                float font_scale = 0.8 * scale;
-                int thickness = 1 * scale;
-
-                cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, thickness, 0);
-                cv::Point top_left (x1 - padding, y1 - line_thickness * overlay_text_size.height);
-                cv::Point bottom_right (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows - 1) * line_thickness / 2)) * overlay_text_size.height);
-                cv::Point top_left_sign (x1 - padding, y1 + (rows + (rows* line_thickness / 2)) * overlay_text_size.height);
-                cv::Point bottom_right_sign (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows + 2) * line_thickness / 2)) * overlay_text_size.height);
-                
-                if (ratio < ratio_threshold)
-                {
-                    cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 255, 0), -1);
-                    cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 255, 0), -1);
-                }
-                else  
-                {
-                    cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 0, 255), -1);
-                    cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 0, 255), -1);
-                }    
-
-                if (cam_id)
-                    cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-                cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-                cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-                cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-
-                cv::addWeighted(overlay, alpha, *show_img, 1 - alpha, 0, *show_img);
-
-                // ------------------------------------- OVERLAY END
-
             }
         }
+
+        if (!(rotate == -90 || rotate == 90))
+            show_img = rotate_image_mat_v2(show_img, -1 * rotate);
+
+        // ------------------------------------- OVERLAY START
+
+        char cam_label[20], nomask_label[20], mask_label[20], ratio_label[20];
+        char test_label[] = "XXXXXXXXXXXXXXXXXXX"; // 19 Xs + '\0'
+
+        cv::Mat overlay;
+        double alpha = 1.0;
+        show_img->copyTo(overlay);
+
+        float ratio = frame_count[0] / (1.0 * frame_count[1]); // (nomask / mask)
+        float ratio_threshold = 2;
+        
+        if (cam_id)                    
+            sprintf(cam_label, "CAMID: %s", cam_id);
+        sprintf(nomask_label, "NO MASK: %d", frame_count[0]);
+        sprintf(mask_label, "MASK: %d", frame_count[1]);
+
+        if (ratio && (frame_count[0] * frame_count[1]) != 0)
+            sprintf(ratio_label, "RATIO: %.2f", ratio);
+        else    
+            sprintf(ratio_label, "");
+
+        int image_height = show_img->size().height;
+        int image_width = show_img->size().width;
+        
+        float factor = (image_height * image_width) / (1920.0 * 1080.0);
+        int scale = 1;
+
+        if (factor > 1)
+            scale = ceil(factor);
+
+        // printf("scale : %f", scale);
+
+        int x1 = 7 * scale;
+        int y1 = 25 * scale;
+        int padding = 3 * scale;
+
+        int rows; (cam_id != NULL) ? (rows = 4) : (rows = 3);  
+        float line_thickness = 1.8;
+
+        // printf("Width : %d\n", show_img->size().width);
+        // printf("Height: %d\n", show_img->size().height);
+
+        float font_scale = 0.8 * scale;
+        int thickness = 1 * scale;
+
+        cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, thickness, 0);
+        cv::Point top_left (x1 - padding, y1 - line_thickness * overlay_text_size.height);
+        cv::Point bottom_right (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows - 1) * line_thickness / 2)) * overlay_text_size.height);
+        cv::Point top_left_sign (x1 - padding, y1 + (rows + (rows* line_thickness / 2)) * overlay_text_size.height);
+        cv::Point bottom_right_sign (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows + 2) * line_thickness / 2)) * overlay_text_size.height);
+        
+        if (ratio < ratio_threshold)
+        {
+            cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 255, 0), -1);
+            cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 255, 0), -1);
+        }
+        else  
+        {
+            cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 0, 255), -1);
+            cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 0, 255), -1);
+        }    
+
+        if (cam_id)
+            cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+        cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+        cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+        cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+
+        cv::addWeighted(overlay, alpha, *show_img, 1 - alpha, 0, *show_img);
+
+        // ------------------------------------- OVERLAY END
+
         if (ext_output) {
             fflush(stdout);
         }

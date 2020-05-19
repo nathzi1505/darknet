@@ -1962,14 +1962,18 @@ void run_detector(int argc, char **argv)
 
         char *cam_id = find_char_arg(argc, argv, "-cam_id", NULL);
         int interval = find_int_arg(argc, argv, "-interval", -1) * 60; // Interval in minutes
+        float rotate = find_float_arg(argc, argv, "-rotate", 0);
+        int roi_flag = find_int_arg(argc, argv, "-roi", 0);
 
+        // printf("Rotate: %f", rotate);
         // printf("CAMID: %s", cam_id);
 
         if (filename)
             if (strlen(filename) > 0)
                 if (filename[strlen(filename) - 1] == 0x0d) filename[strlen(filename) - 1] = 0;
         demo(cfg, weights, thresh, hier_thresh, cam_index, filename, names, classes, frame_skip, prefix, out_filename,
-            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, benchmark, benchmark_layers, cam_id, interval);
+            mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, 
+            benchmark, benchmark_layers, cam_id, interval, rotate, roi_flag);
 
         free_list_contents_kvp(options);
         free_list(options);

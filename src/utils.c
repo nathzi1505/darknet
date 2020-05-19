@@ -21,7 +21,6 @@
 #include <sys/stat.h>
 #endif
 
-
 #ifndef USE_CMAKE_LIBS
 #pragma warning(disable: 4996)
 #endif

@@ -1964,6 +1964,8 @@ void run_detector(int argc, char **argv)
         int interval = find_int_arg(argc, argv, "-interval", -1) * 60; // Interval in minutes
         float rotate = find_float_arg(argc, argv, "-rotate", 0);
         int roi_flag = find_int_arg(argc, argv, "-roi", 0);
+        int overlay = find_int_arg(argc, argv, "-overlay", 0);
+        int ratio_interval = find_int_arg(argc, argv, "-ratio_interval", 60); // Ratio refresh interval in seconds
 
         // printf("Rotate: %f", rotate);
         // printf("CAMID: %s", cam_id);
@@ -1973,7 +1975,7 @@ void run_detector(int argc, char **argv)
                 if (filename[strlen(filename) - 1] == 0x0d) filename[strlen(filename) - 1] = 0;
         demo(cfg, weights, thresh, hier_thresh, cam_index, filename, names, classes, frame_skip, prefix, out_filename,
             mjpeg_port, dontdraw_bbox, json_port, dont_show, ext_output, letter_box, time_limit_sec, http_post_host, 
-            benchmark, benchmark_layers, cam_id, interval, rotate, roi_flag);
+            benchmark, benchmark_layers, cam_id, interval, rotate, roi_flag, overlay, ratio_interval);
 
         free_list_contents_kvp(options);
         free_list(options);

@@ -916,7 +916,7 @@ extern "C" void save_cv_jpg(mat_cv *img_src, const char *name)
 // Draw Detection
 // ====================================================================
 float AREA_THRESH = 0.5;
-extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts, char *cam_id, float rotate)
+extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, float thresh, char **names, image **alphabet, int classes, int ext_output, int *counts, float average_ratio, char *cam_id, float rotate, int overlay)
 {
     try {
         cv::Mat *show_img = (cv::Mat*)mat;
@@ -1067,75 +1067,83 @@ extern "C" void draw_detections_cv_v3(mat_cv* mat, detection *dets, int num, flo
             show_img = rotate_image_mat_v2(show_img, -1 * rotate);
 
         // ------------------------------------- OVERLAY START
-
-        char cam_label[20], nomask_label[20], mask_label[20], ratio_label[20];
-        char test_label[] = "XXXXXXXXXXXXXXXXXXX"; // 19 Xs + '\0'
-
-        cv::Mat overlay;
-        double alpha = 1.0;
-        show_img->copyTo(overlay);
-
-        float ratio = frame_count[0] / (1.0 * frame_count[1]); // (nomask / mask)
-        float ratio_threshold = 2;
-        
-        if (cam_id)                    
-            sprintf(cam_label, "CAMID: %s", cam_id);
-        sprintf(nomask_label, "NO MASK: %d", frame_count[0]);
-        sprintf(mask_label, "MASK: %d", frame_count[1]);
-
-        if (ratio && (frame_count[0] * frame_count[1]) != 0)
-            sprintf(ratio_label, "RATIO: %.2f", ratio);
-        else    
-            sprintf(ratio_label, "");
-
-        int image_height = show_img->size().height;
-        int image_width = show_img->size().width;
-        
-        float factor = (image_height * image_width) / (1920.0 * 1080.0);
-        int scale = 1;
-
-        if (factor > 1)
-            scale = ceil(factor);
-
-        // printf("scale : %f", scale);
-
-        int x1 = 7 * scale;
-        int y1 = 25 * scale;
-        int padding = 3 * scale;
-
-        int rows; (cam_id != NULL) ? (rows = 4) : (rows = 3);  
-        float line_thickness = 1.8;
-
-        // printf("Width : %d\n", show_img->size().width);
-        // printf("Height: %d\n", show_img->size().height);
-
-        float font_scale = 0.8 * scale;
-        int thickness = 1 * scale;
-
-        cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, thickness, 0);
-        cv::Point top_left (x1 - padding, y1 - line_thickness * overlay_text_size.height);
-        cv::Point bottom_right (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows - 1) * line_thickness / 2)) * overlay_text_size.height);
-        cv::Point top_left_sign (x1 - padding, y1 + (rows + (rows* line_thickness / 2)) * overlay_text_size.height);
-        cv::Point bottom_right_sign (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows + 2) * line_thickness / 2)) * overlay_text_size.height);
-        
-        if (ratio < ratio_threshold)
+        if (overlay == 1)
         {
-            cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 255, 0), -1);
-            cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 255, 0), -1);
+            char cam_label[20], nomask_label[20], mask_label[20], ratio_label[25];
+            char test_label[] = "XXXXXXXXXXXXXXXXXXX"; // 19 Xs + '\0'
+
+            cv::Mat overlay;
+            double alpha = 1.0;
+            show_img->copyTo(overlay);
+
+            // float ratio = frame_count[0] / (1.0 * frame_count[1]); // (nomask / mask)
+            float ratio_threshold = 2;
+            float epsilon = 0.000001;
+            
+            if (cam_id)                    
+                sprintf(cam_label, "CAMID: %s", cam_id);
+            sprintf(nomask_label, "NOMASK: %d", frame_count[0]);
+            sprintf(mask_label, "MASK: %d", frame_count[1]);
+
+            if (average_ratio)
+                sprintf(ratio_label, "AVERAGE RATIO: %.2f", average_ratio);
+            else    
+                sprintf(ratio_label, "AVERAGE RATIO: Nil");
+
+            int image_height = show_img->size().height;
+            int image_width = show_img->size().width;
+            
+            float factor = (image_height * image_width) / (1920.0 * 1080.0);
+            int scale = 1;
+
+            if (factor > 1)
+                scale = ceil(factor);
+
+            // printf("scale : %f", scale);
+
+            int x1 = 7 * scale;
+            int y1 = 25 * scale;
+            int padding = 3 * scale;
+
+            int rows; (cam_id != NULL) ? (rows = 4) : (rows = 3);  
+            float line_thickness = 1.8;
+
+            // printf("Width : %d\n", show_img->size().width);
+            // printf("Height: %d\n", show_img->size().height);
+
+            float font_scale = 0.8 * scale;
+            int thickness = 1 * scale;
+
+            cv::Size const overlay_text_size = cv::getTextSize(test_label, cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, thickness, 0);
+            cv::Point top_left (x1 - padding, y1 - line_thickness * overlay_text_size.height);
+            cv::Point bottom_right (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows - 1) * line_thickness / 2)) * overlay_text_size.height);
+            cv::Point top_left_sign (x1 - padding, y1 + (rows + (rows* line_thickness / 2)) * overlay_text_size.height);
+            cv::Point bottom_right_sign (x1 + overlay_text_size.width + padding, y1 + (rows + ((rows + 2) * line_thickness / 2)) * overlay_text_size.height);
+
+            if (average_ratio < 1)
+            {
+                cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 255, 0), -1);
+                cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 255, 0), -1);
+            }
+            else if (average_ratio > 1 && average_ratio < ratio_threshold)
+            {
+                cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 131, 255), -1);
+                cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 131, 255), -1);
+            }  
+            else  
+            {
+                cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 0, 255), -1);
+                cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 0, 255), -1);
+            }    
+
+            if (cam_id)
+                cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+            cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+            cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+            cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
+
+            cv::addWeighted(overlay, alpha, *show_img, 1 - alpha, 0, *show_img); 
         }
-        else  
-        {
-            cv::rectangle(overlay, top_left, bottom_right, cv::Scalar(0, 0, 255), -1);
-            cv::rectangle(overlay, top_left_sign, bottom_right_sign, cv::Scalar(0, 0, 255), -1);
-        }    
-
-        if (cam_id)
-            cv::putText(overlay, cam_label, cv::Point(x1,y1), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-        cv::putText(overlay, nomask_label, cv::Point(x1,y1 + line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-        cv::putText(overlay, mask_label, cv::Point(x1,y1 + 2 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-        cv::putText(overlay, ratio_label, cv::Point(x1,y1 + 3 * line_thickness * overlay_text_size.height), cv::FONT_HERSHEY_COMPLEX_SMALL, font_scale, cv::Scalar(0,0,0), thickness, CV_AA); 
-
-        cv::addWeighted(overlay, alpha, *show_img, 1 - alpha, 0, *show_img);
 
         // ------------------------------------- OVERLAY END
 

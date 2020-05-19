@@ -142,7 +142,7 @@ double get_wall_time()
 
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi)
+    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi, int overlay, int ratio_interval)
 {
     roi_flag = roi;
     angle = rotate;
@@ -285,6 +285,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     int global_frame_counter = 0;
     int frame_id_csv = 0;
     int counts[2] = {0};
+    float average_ratio = 0;
 
     const double start_time_lim = get_time_point();
     double before = get_time_point();
@@ -292,6 +293,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
     double start_detection_time = get_time_point();
 
     while(1){
+        fflush(stdout);
         ++count;
         double after, spent_time;
         {
@@ -353,7 +355,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 
             
             if (!benchmark && !dontdraw_bbox) 
-                draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, cam_id, rotate);
+                draw_detections_cv_v3(show_img, local_dets, local_nboxes, demo_thresh, demo_names, demo_alphabet, demo_classes, demo_ext_output, counts, average_ratio, cam_id, rotate, overlay);
             free_detections(local_dets, local_nboxes);
 
             // after = get_time_point();
@@ -395,11 +397,17 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
             if (output_video_writer && show_img) {
                 write_frame_cv(output_video_writer, show_img);
                 printf("\ncvWriteFrame: %d\n", frame_id);
+
+                int interval_frames = ratio_interval * src_fps;
                 
-                if (cam_id != NULL && frame_id % 10 == 0) {
-                    float nomask = counts[0] / 10.0; float mask = counts[1] / 10.0;
-                    float ratio = nomask / (float) mask;
-                    fprintf(csv, "%s, %d, %.2f, %.2f, %.2f\n", cam_id, frame_id_csv, nomask, mask, ratio);
+                if (cam_id != NULL && ((frame_id % interval_frames) == 0)) {
+                    printf("Interval (seconds): %d ", ratio_interval);
+                    printf("Interval (frames): %d \n", interval_frames);
+                    int nomask = counts[0]; int mask = counts[1];
+                    average_ratio = (1.0 * nomask) / (1.0 * mask);
+                    printf("%s, %d, %d, %d, %.2f\n", cam_id, frame_id_csv, nomask, mask, average_ratio);
+                    fprintf(csv, "%s, %d, %d, %d, %.2f\n", cam_id, frame_id_csv, nomask, mask, average_ratio);
+                    fflush(csv);
                     counts[0] = 0; counts[1] = 0;
                 }
             }
@@ -494,7 +502,7 @@ void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int 
 #else
 void demo(char *cfgfile, char *weightfile, float thresh, float hier_thresh, int cam_index, const char *filename, char **names, int classes,
     int frame_skip, char *prefix, char *out_filename, int mjpeg_port, int dontdraw_bbox, int json_port, int dont_show, int ext_output, int letter_box_in, int time_limit_sec, char *http_post_host,
-    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi_flag)
+    int benchmark, int benchmark_layers, char* cam_id, int interval, float rotate, int roi_flag, int overlay, int ratio_interval)
 {
     fprintf(stderr, "Demo needs OpenCV for webcam images.\n");
 }

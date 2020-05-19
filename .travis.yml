@@ -14,13 +14,13 @@ matrix:
         - additional_defines=""
         - MATRIX_EVAL=""
 
-    # - os: osx
-    #   compiler: gcc
-    #   name: macOS - gcc (llvm backend) - opencv@2
-    #   env:
-    #     - OpenCV_DIR="/usr/local/opt/opencv@2/"
-    #     - additional_defines="-DOpenCV_DIR=${OpenCV_DIR}"
-    #     - MATRIX_EVAL="brew install opencv@2"
+    - os: osx
+      compiler: gcc
+      name: macOS - gcc (llvm backend) - opencv@2
+      env:
+        - OpenCV_DIR="/usr/local/opt/opencv@2/"
+        - additional_defines="-DOpenCV_DIR=${OpenCV_DIR}"
+        - MATRIX_EVAL="brew install opencv@2"
 
     - os: osx
       compiler: gcc
@@ -51,13 +51,13 @@ matrix:
         - additional_defines="-DBUILD_AS_CPP:BOOL=TRUE"
         - MATRIX_EVAL=""
 
-    # - os: osx
-    #   compiler: clang
-    #   name: macOS - clang - opencv@2
-    #   env:
-    #     - OpenCV_DIR="/usr/local/opt/opencv@2/"
-    #     - additional_defines="-DOpenCV_DIR=${OpenCV_DIR}"
-    #     - MATRIX_EVAL="brew install opencv@2"
+    - os: osx
+      compiler: clang
+      name: macOS - clang - opencv@2
+      env:
+        - OpenCV_DIR="/usr/local/opt/opencv@2/"
+        - additional_defines="-DOpenCV_DIR=${OpenCV_DIR}"
+        - MATRIX_EVAL="brew install opencv@2"
 
     - os: osx
       compiler: clang
@@ -213,6 +213,8 @@ matrix:
 
   allow_failures:
     - name: macOS - clang - vcpkg
+    - name: macOS - gcc (llvm backend) - opencv@2
+    - name: macOS - clang - opencv@2
 
 before_install:
   - travis_retry eval "${MATRIX_EVAL}"
